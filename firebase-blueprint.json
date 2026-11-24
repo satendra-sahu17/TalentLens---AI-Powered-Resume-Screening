@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "Recruiter": {
+      "title": "Recruiter",
+      "description": "Authenticated recruiter profile and configurable NLP scoring weights.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the recruiter" },
+        "displayName": { "type": "string", "description": "Recruiter display name" },
+        "email": { "type": "string", "description": "Recruiter email address" },
+        "organization": { "type": "string", "description": "Company or team name" },
+        "semanticWeight": { "type": "number", "description": "Weight for semantic similarity (default 0.40)" },
+        "skillsWeight": { "type": "number", "description": "Weight for technical skills matching (default 0.30)" },
+        "experienceWeight": { "type": "number", "description": "Weight for experience relevance (default 0.20)" },
+        "educationWeight": { "type": "number", "description": "Weight for education relevance (default 0.10)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation (FieldValue.serverTimestamp())" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update (FieldValue.serverTimestamp())" }
+      },
+      "required": ["userId", "displayName", "email", "semanticWeight", "skillsWeight", "experienceWeight", "educationWeight", "createdAt", "updatedAt"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Job opening with description, required skills, qualifications, and experience.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "department": { "type": "string" },
+        "description": { "type": "string" },
+        "requiredSkills": { "type": "array" },
+        "qualifications": { "type": "string" },
+        "minExperienceYears": { "type": "integer" },
+        "status": { "type": "string", "enum": ["OPEN", "PAUSED", "CLOSED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "department", "description", "requiredSkills", "qualifications", "minExperienceYears", "status", "createdAt", "updatedAt"]
+    },
+    "Candidate": {
+      "title": "Candidate",
+      "description": "Parsed candidate profile extracted via NLP without protected demographic attributes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "totalExperienceYears": { "type": "number" },
+        "highestEducation": { "type": "string" },
+        "workExperienceSummary": { "type": "string" },
+        "projectsSummary": { "type": "string" },
+        "certifications": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "email", "phone", "totalExperienceYears", "highestEducation", "workExperienceSummary", "projectsSummary", "certifications", "createdAt", "updatedAt"]
+    },
+    "Resume": {
+      "title": "Resume",
+      "description": "Uploaded PDF/DOCX resume metadata and extracted plain text for manual review.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileType": { "type": "string", "enum": ["PDF", "DOCX", "SAMPLE"] },
+        "fileSizeBytes": { "type": "integer" },
+        "extractedText": { "type": "string" },
+        "wordCount": { "type": "integer" },
+        "parseStatus": { "type": "string", "enum": ["PARSED", "FAILED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "candidateId", "fileName", "fileType", "fileSizeBytes", "extractedText", "wordCount", "parseStatus", "createdAt", "updatedAt"]
+    },
+    "ExtractedSkill": {
+      "title": "ExtractedSkill",
+      "description": "Technical skill extracted from a candidate resume using NLP taxonomy matching.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "resumeId": { "type": "string" },
+        "skillName": { "type": "string" },
+        "category": { "type": "string" },
+        "confidenceScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "candidateId", "resumeId", "skillName", "category", "confidenceScore", "createdAt", "updatedAt"]
+    },
+    "ScreeningResult": {
+      "title": "ScreeningResult",
+      "description": "Explainable NLP matching score and decision-support breakdown for a candidate against a job.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "resumeId": { "type": "string" },
+        "candidateName": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "finalScore": { "type": "number" },
+        "semanticScore": { "type": "number" },
+        "tfidfCosineScore": { "type": "number" },
+        "skillMatchScore": { "type": "number" },
+        "experienceScore": { "type": "number" },
+        "educationScore": { "type": "number" },
+        "matchedSkills": { "type": "array" },
+        "missingSkills": { "type": "array" },
+        "aiExplanation": { "type": "string" },
+        "reviewStatus": { "type": "string", "enum": ["PENDING_REVIEW", "SHORTLISTED", "NEEDS_REVIEW", "NOT_SELECTED"] },
+        "reviewerNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "jobId", "candidateId", "resumeId", "candidateName", "jobTitle", "finalScore", "semanticScore", "tfidfCosineScore", "skillMatchScore", "experienceScore", "educationScore", "matchedSkills", "missingSkills", "aiExplanation", "reviewStatus", "reviewerNotes", "createdAt", "updatedAt"]
+    },
+    "ShortlistedCandidate": {
+      "title": "ShortlistedCandidate",
+      "description": "Recruiter-approved shortlisted candidate record for a specific job opening.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "screeningResultId": { "type": "string" },
+        "candidateName": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "finalScore": { "type": "number" },
+        "priorityNote": { "type": "string" },
+        "status": { "type": "string", "enum": ["SHORTLISTED", "INTERVIEW_SCHEDULED", "OFFER_EXTENDED", "ARCHIVED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "jobId", "candidateId", "screeningResultId", "candidateName", "jobTitle", "finalScore", "priorityNote", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/Recruiter" },
+      "description": "Authenticated recruiter profile and configurable matching score weights."
+    },
+    "/users/{userId}/jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/Job" },
+      "description": "Job descriptions created and managed by the recruiter."
+    },
+    "/users/{userId}/candidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/Candidate" },
+      "description": "Parsed candidate records belonging to the recruiter."
+    },
+    "/users/{userId}/resumes/{resumeId}": {
+      "schema": { "$ref": "#/entities/Resume" },
+      "description": "Uploaded resume files and extracted text for recruiter review."
+    },
+    "/users/{userId}/extracted_skills/{skillId}": {
+      "schema": { "$ref": "#/entities/ExtractedSkill" },
+      "description": "Normalized technical skills extracted from resumes."
+    },
+    "/users/{userId}/screening_results/{resultId}": {
+      "schema": { "$ref": "#/entities/ScreeningResult" },
+      "description": "Explainable NLP screening scores and recruiter review decisions."
+    },
+    "/users/{userId}/shortlisted_candidates/{shortlistId}": {
+      "schema": { "$ref": "#/entities/ShortlistedCandidate" },
+      "description": "Shortlisted candidates per job opening."
+    }
+  }
+}

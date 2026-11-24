@@ -1,0 +1,257 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isBoundedString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedStringList(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || arr[0] is string);
+    }
+
+    function isValidScore(val) {
+      return val is number && val >= 0 && val <= 100;
+    }
+
+    function isValidWeight(val) {
+      return val is number && val >= 0 && val <= 1;
+    }
+
+    function isValidRecruiter(data, userId) {
+      return data.userId == userId &&
+             isBoundedString(data.displayName, 1, 120) &&
+             isBoundedString(data.email, 3, 200) &&
+             isBoundedString(data.organization, 0, 150) &&
+             isValidWeight(data.semanticWeight) &&
+             isValidWeight(data.skillsWeight) &&
+             isValidWeight(data.experienceWeight) &&
+             isValidWeight(data.educationWeight) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidJob(data, userId) {
+      return data.userId == userId &&
+             isBoundedString(data.title, 2, 160) &&
+             isBoundedString(data.department, 1, 120) &&
+             isBoundedString(data.description, 10, 15000) &&
+             isBoundedStringList(data.requiredSkills, 50) &&
+             isBoundedString(data.qualifications, 2, 2000) &&
+             data.minExperienceYears is int && data.minExperienceYears >= 0 && data.minExperienceYears <= 50 &&
+             data.status in ['OPEN', 'PAUSED', 'CLOSED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCandidate(data, userId) {
+      return data.userId == userId &&
+             isBoundedString(data.fullName, 1, 150) &&
+             isBoundedString(data.email, 0, 200) &&
+             isBoundedString(data.phone, 0, 60) &&
+             data.totalExperienceYears is number && data.totalExperienceYears >= 0 && data.totalExperienceYears <= 60 &&
+             isBoundedString(data.highestEducation, 0, 300) &&
+             isBoundedString(data.workExperienceSummary, 0, 6000) &&
+             isBoundedString(data.projectsSummary, 0, 6000) &&
+             isBoundedStringList(data.certifications, 30) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidResume(data, userId) {
+      return data.userId == userId &&
+             isValidId(data.candidateId) &&
+             isBoundedString(data.fileName, 1, 255) &&
+             data.fileType in ['PDF', 'DOCX', 'SAMPLE'] &&
+             data.fileSizeBytes is int && data.fileSizeBytes >= 0 && data.fileSizeBytes <= 15728640 &&
+             isBoundedString(data.extractedText, 1, 45000) &&
+             data.wordCount is int && data.wordCount >= 0 && data.wordCount <= 20000 &&
+             data.parseStatus in ['PARSED', 'FAILED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidExtractedSkill(data, userId) {
+      return data.userId == userId &&
+             isValidId(data.candidateId) &&
+             isValidId(data.resumeId) &&
+             isBoundedString(data.skillName, 1, 80) &&
+             isBoundedString(data.category, 1, 80) &&
+             data.confidenceScore is number && data.confidenceScore >= 0 && data.confidenceScore <= 1 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidScreeningResult(data, userId) {
+      return data.userId == userId &&
+             isValidId(data.jobId) &&
+             isValidId(data.candidateId) &&
+             isValidId(data.resumeId) &&
+             isBoundedString(data.candidateName, 1, 150) &&
+             isBoundedString(data.jobTitle, 1, 160) &&
+             isValidScore(data.finalScore) &&
+             isValidScore(data.semanticScore) &&
+             isValidScore(data.tfidfCosineScore) &&
+             isValidScore(data.skillMatchScore) &&
+             isValidScore(data.experienceScore) &&
+             isValidScore(data.educationScore) &&
+             isBoundedStringList(data.matchedSkills, 50) &&
+             isBoundedStringList(data.missingSkills, 50) &&
+             isBoundedString(data.aiExplanation, 0, 4000) &&
+             data.reviewStatus in ['PENDING_REVIEW', 'SHORTLISTED', 'NEEDS_REVIEW', 'NOT_SELECTED'] &&
+             isBoundedString(data.reviewerNotes, 0, 2000) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidShortlistedCandidate(data, userId) {
+      return data.userId == userId &&
+             isValidId(data.jobId) &&
+             isValidId(data.candidateId) &&
+             isValidId(data.screeningResultId) &&
+             isBoundedString(data.candidateName, 1, 150) &&
+             isBoundedString(data.jobTitle, 1, 160) &&
+             isValidScore(data.finalScore) &&
+             isBoundedString(data.priorityNote, 0, 1000) &&
+             data.status in ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'OFFER_EXTENDED', 'ARCHIVED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 1. Recruiters
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'email', 'organization', 'semanticWeight', 'skillsWeight', 'experienceWeight', 'educationWeight', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'organization', 'semanticWeight', 'skillsWeight', 'experienceWeight', 'educationWeight', 'createdAt', 'updatedAt']) &&
+                       isValidRecruiter(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidRecruiter(incoming(), userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'organization', 'semanticWeight', 'skillsWeight', 'experienceWeight', 'educationWeight', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // 2. Jobs
+      match /jobs/{jobId} {
+        allow get: if isOwner(userId) && isValidId(jobId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(jobId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'department', 'description', 'requiredSkills', 'qualifications', 'minExperienceYears', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'department', 'description', 'requiredSkills', 'qualifications', 'minExperienceYears', 'status', 'createdAt', 'updatedAt']) &&
+                         isValidJob(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(jobId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidJob(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'department', 'description', 'requiredSkills', 'qualifications', 'minExperienceYears', 'status', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(jobId);
+      }
+
+      // 3. Candidates
+      match /candidates/{candidateId} {
+        allow get: if isOwner(userId) && isValidId(candidateId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(candidateId) &&
+                         incoming().keys().hasAll(['userId', 'fullName', 'email', 'phone', 'totalExperienceYears', 'highestEducation', 'workExperienceSummary', 'projectsSummary', 'certifications', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'fullName', 'email', 'phone', 'totalExperienceYears', 'highestEducation', 'workExperienceSummary', 'projectsSummary', 'certifications', 'createdAt', 'updatedAt']) &&
+                         isValidCandidate(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(candidateId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidCandidate(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'email', 'phone', 'totalExperienceYears', 'highestEducation', 'workExperienceSummary', 'projectsSummary', 'certifications', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(candidateId);
+      }
+
+      // 4. Resumes
+      match /resumes/{resumeId} {
+        allow get: if isOwner(userId) && isValidId(resumeId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(resumeId) &&
+                         incoming().keys().hasAll(['userId', 'candidateId', 'fileName', 'fileType', 'fileSizeBytes', 'extractedText', 'wordCount', 'parseStatus', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'candidateId', 'fileName', 'fileType', 'fileSizeBytes', 'extractedText', 'wordCount', 'parseStatus', 'createdAt', 'updatedAt']) &&
+                         isValidResume(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(resumeId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidResume(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['extractedText', 'wordCount', 'parseStatus', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(resumeId);
+      }
+
+      // 5. ExtractedSkills
+      match /extracted_skills/{skillId} {
+        allow get: if isOwner(userId) && isValidId(skillId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(skillId) &&
+                         incoming().keys().hasAll(['userId', 'candidateId', 'resumeId', 'skillName', 'category', 'confidenceScore', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'candidateId', 'resumeId', 'skillName', 'category', 'confidenceScore', 'createdAt', 'updatedAt']) &&
+                         isValidExtractedSkill(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(skillId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidExtractedSkill(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['skillName', 'category', 'confidenceScore', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(skillId);
+      }
+
+      // 6. ScreeningResults
+      match /screening_results/{resultId} {
+        allow get: if isOwner(userId) && isValidId(resultId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(resultId) &&
+                         incoming().keys().hasAll(['userId', 'jobId', 'candidateId', 'resumeId', 'candidateName', 'jobTitle', 'finalScore', 'semanticScore', 'tfidfCosineScore', 'skillMatchScore', 'experienceScore', 'educationScore', 'matchedSkills', 'missingSkills', 'aiExplanation', 'reviewStatus', 'reviewerNotes', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'jobId', 'candidateId', 'resumeId', 'candidateName', 'jobTitle', 'finalScore', 'semanticScore', 'tfidfCosineScore', 'skillMatchScore', 'experienceScore', 'educationScore', 'matchedSkills', 'missingSkills', 'aiExplanation', 'reviewStatus', 'reviewerNotes', 'createdAt', 'updatedAt']) &&
+                         isValidScreeningResult(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(resultId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidScreeningResult(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['finalScore', 'semanticScore', 'tfidfCosineScore', 'skillMatchScore', 'experienceScore', 'educationScore', 'matchedSkills', 'missingSkills', 'aiExplanation', 'reviewStatus', 'reviewerNotes', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(resultId);
+      }
+
+      // 7. ShortlistedCandidates
+      match /shortlisted_candidates/{shortlistId} {
+        allow get: if isOwner(userId) && isValidId(shortlistId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(shortlistId) &&
+                         incoming().keys().hasAll(['userId', 'jobId', 'candidateId', 'screeningResultId', 'candidateName', 'jobTitle', 'finalScore', 'priorityNote', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'jobId', 'candidateId', 'screeningResultId', 'candidateName', 'jobTitle', 'finalScore', 'priorityNote', 'status', 'createdAt', 'updatedAt']) &&
+                         isValidShortlistedCandidate(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(shortlistId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidShortlistedCandidate(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['priorityNote', 'status', 'finalScore', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(shortlistId);
+      }
+    }
+  }
+}

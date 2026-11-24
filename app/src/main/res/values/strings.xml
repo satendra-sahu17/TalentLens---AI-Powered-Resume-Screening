@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">TalentLens AI</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_jobs">Jobs</string>
+    <string name="nav_screen">Screen</string>
+    <string name="nav_compare">Compare</string>
+    <string name="nav_shortlist">Shortlist</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_out">Sign out</string>
+    <string name="fairness_notice">NLP match scores are configurable decision-support signals, not automated hiring decisions. Protected attributes are excluded.</string>
+</resources>
